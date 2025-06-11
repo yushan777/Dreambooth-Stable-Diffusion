@@ -53,6 +53,14 @@ class PersonalizedBase(Dataset):
             self._length = self.num_images * repeats
 
         self.size = size
+
+        # Handle PIL/Pillow version compatibility for interpolation constants
+        # PIL.Image.LINEAR was removed in newer versions, use BILINEAR instead
+        try:
+            linear_interpolation = PIL.Image.LINEAR
+        except AttributeError:
+            linear_interpolation = PIL.Image.BILINEAR
+            
         self.interpolation = {"linear": linear_interpolation,
                               "bilinear": PIL.Image.BILINEAR,
                               "bicubic": PIL.Image.BICUBIC,
