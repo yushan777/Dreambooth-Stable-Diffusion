@@ -133,6 +133,60 @@ class DataModuleFromConfig(pl.LightningDataModule):
                           num_workers=self.num_workers, worker_init_fn=init_fn)
 
 
+def filter_trainer_args(trainer_args):
+    """
+    Filter out deprecated PyTorch Lightning Trainer arguments that are no longer supported
+    """
+    # List of deprecated arguments in newer PyTorch Lightning versions
+    deprecated_args = [
+        'checkpoint_callback',
+        'early_stop_callback', 
+        'progress_bar_refresh_rate',
+        'process_position',
+        'num_processes',
+        'distributed_backend',
+        'terminate_on_nan',
+        'auto_scale_batch_size',
+        'auto_lr_find',
+        'benchmark',
+        'deterministic',
+        'reload_dataloaders_every_epoch',
+        'replace_sampler_ddp',
+        'num_sanity_val_steps',
+        'truncated_bptt_steps',
+        'resume_from_checkpoint',
+        'profiler',
+        'weights_summary',
+        'weights_save_path',
+        'amp_backend',
+        'amp_level',
+        'automatic_optimization',
+        'move_metrics_to_cpu',
+        'multiple_trainloader_mode',
+        'stochastic_weight_avg'
+    ]
+    
+    # Filter out deprecated arguments
+    filtered_args = {k: v for k, v in trainer_args.items() if k not in deprecated_args}
+    
+    # Handle specific argument transformations if needed
+    if 'gpus' in filtered_args and filtered_args['gpus'] is not None:
+        # In newer versions, use 'devices' instead of 'gpus'
+        if 'devices' not in filtered_args:
+            filtered_args['devices'] = filtered_args.pop('gpus')
+        else:
+            filtered_args.pop('gpus', None)
+    
+    # Handle precision argument - might need special handling
+    if 'precision' in filtered_args:
+        precision_val = filtered_args['precision']
+        if isinstance(precision_val, str) and precision_val not in ['16', '32', '64', 'bf16']:
+            # Remove invalid precision values
+            filtered_args.pop('precision', None)
+    
+    return filtered_args
+
+
 if __name__ == "__main__":
     # Generate the config from the input arguments
     dreambooth_config: JoePennaDreamboothConfigSchemaV1 = parse_arguments()
@@ -184,7 +238,18 @@ if __name__ == "__main__":
         )
 
         trainer_opt = argparse.Namespace(**dreambooth_trainer_config)
-        trainer = Trainer.from_argparse_args(trainer_opt, **dreambooth_trainer_kwargs)
+        
+        # Convert argparse Namespace to dict and merge with dreambooth_trainer_kwargs
+        trainer_args = vars(trainer_opt)
+        trainer_args.update(dreambooth_trainer_kwargs)
+        
+        # Filter out deprecated arguments
+        trainer_args = filter_trainer_args(trainer_args)
+        
+        if dreambooth_config.debug:
+            print("Trainer arguments after filtering:", list(trainer_args.keys()))
+        
+        trainer = Trainer(**trainer_args)        
         trainer.logdir = dreambooth_config.log_directory()
 
         # Setup the data
