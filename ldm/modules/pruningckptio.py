@@ -1,7 +1,11 @@
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 
 from typing import Any, Callable, Dict, Optional
-from pytorch_lightning.utilities.types import _PATH
+
+from typing import Union
+from pathlib import Path
+_PATH = Union[str, Path]
+
 from ldm.pruner import prune_checkpoint
  
 class PruningCheckpointIO(TorchCheckpointIO):
