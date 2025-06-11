@@ -8,7 +8,7 @@ from PIL import Image
 from omegaconf import OmegaConf
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_info
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
 class SetupCallback(Callback):
